@@ -1,0 +1,29 @@
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+project(NA61_TO_DATATREE)
+
+# bad stuff
+set (${PROJECT_NAME}_SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set (${PROJECT_NAME}_INCLUDE_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+string (TOLOWER ${PROJECT_NAME} STR_BIN_OUTPUT_FILENAME)
+
+
+file(GLOB SRC_FILES ${NA61_TO_DATATREE_SOURCE_DIR}/*.cpp)
+
+include_directories(
+    ${NA61_TO_DATATREE_INCLUDE_DIR}
+    ${PROJECT_ROOT_DIR}/lib-src/DataTree/src
+    )
+
+
+add_executable(${PROJECT_NAME} ${SRC_FILES} )
+
+target_link_libraries (${PROJECT_NAME} DataTree ${ROOT_LIBRARIES})
+
+set_target_properties (${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${STR_BIN_OUTPUT_FILENAME})
+
+install (
+    TARGETS ${PROJECT_NAME}
+    RUNTIME     DESTINATION ${PROJECT_ROOT_BIN_DIR}
+    INCLUDES    DESTINATION ${PROJECT_ROOT_INCLUDE_DIR}
+)

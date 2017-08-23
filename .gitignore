@@ -1,0 +1,37 @@
+
+# All files
+*.*
+
+!.gitignore
+!.gitattributes
+# Cmake
+!CMakeLists.txt
+/build
+
+# Except for vscode jsons
+!*.json
+
+#
+# Sources
+#
+
+# ROOT macro
+!*.C
+
+# C/C++ source
+!*.[ch]
+!*.cxx
+
+#
+# DATA
+#
+!*.root
+
+#
+# ext libs and binary
+#
+/lib
+/lib-src
+/bin
+
+

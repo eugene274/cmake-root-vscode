@@ -19,7 +19,8 @@ set (PROJECT_ROOT_BIN_DIR        ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set (PROJECT_ROOT_SOURCE_DIR     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set (PROJECT_ROOT_INCLUDE_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-include_directories ($ROOT_INCLUDE_DIRS ${PROJECT_ROOT_INCLUDE_DIR})
+include_directories (${ROOT_INCLUDE_DIRS} ${PROJECT_ROOT_INCLUDE_DIR})
 link_directories (${PROJECT_ROOT_DIR}/lib)
 
+add_subdirectory (DataTree)
 add_subdirectory (NA61ToDataTree)

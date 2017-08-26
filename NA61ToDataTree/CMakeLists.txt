@@ -12,13 +12,14 @@ file(GLOB SRC_FILES ${NA61_TO_DATATREE_SOURCE_DIR}/*.cpp)
 
 include_directories(
     ${NA61_TO_DATATREE_INCLUDE_DIR}
-    ${PROJECT_ROOT_DIR}/lib-src/DataTree/src
+    ${DataTree_INCLUDE_DIR}
     )
 
+add_definitions(${ROOT_CXX_FLAGS})
 
 add_executable(${PROJECT_NAME} ${SRC_FILES} )
 
-target_link_libraries (${PROJECT_NAME} DataTree ${ROOT_LIBRARIES})
+target_link_libraries (${PROJECT_NAME} DataTree ${ROOT_LIBRARIES}) 
 
 set_target_properties (${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${STR_BIN_OUTPUT_FILENAME})
 

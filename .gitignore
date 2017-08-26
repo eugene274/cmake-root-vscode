@@ -1,6 +1,7 @@
 
 # All files
 *.*
+Makefile
 
 !.gitignore
 !.gitattributes

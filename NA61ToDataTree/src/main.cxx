@@ -20,19 +20,6 @@ void process(string inFileName, string outFileName, int nEvents = -1)
     dtConverter->Finish();
 }
 
-string* getOutFileNameFromInFileName(string inFileName) {
-    const std::regex re("TreeNA61");
-
-    string* outFileName = new string(std::regex_replace(
-        inFileName,
-        re,
-        "DataTree", 
-        regex_constants::match_default
-    ));
-
-    return outFileName;
-}
-
 
 
 int main(int argc, char** argv)
@@ -54,7 +41,8 @@ int main(int argc, char** argv)
     if (argc > 2) {
         outFileName = new string(argv[2]);
     } else {
-        outFileName = getOutFileNameFromInFileName(*inFileName);
+        cerr << "No output file specified" << endl;
+        return 1;
     }    
    
     if (

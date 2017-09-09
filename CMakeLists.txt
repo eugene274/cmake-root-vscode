@@ -10,7 +10,11 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT REQUIRED COMPONENTS RIO Net)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
-include(${ROOT_USE_FILE})
+IF (${ROOT_USE_FILE})
+    message("ROOT USE FILE: ${ROOT_USE_FILE}")
+    include(${ROOT_USE_FILE})
+ENDIF()
+
 
 
 set (PROJECT_ROOT_NAME           ${PROJECT_NAME})
@@ -22,6 +26,7 @@ set (PROJECT_ROOT_INCLUDE_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories (${ROOT_INCLUDE_DIRS} ${PROJECT_ROOT_INCLUDE_DIR})
 link_directories (${PROJECT_ROOT_DIR}/lib)
 
-add_subdirectory (DataTree)
-add_subdirectory (NA61ToDataTree)
+#add if you need to renew. won't work on hpc
+#add_subdirectory (DataTree)
+#add_subdirectory (NA61ToDataTree)
 add_subdirectory (FlowVectorNA61)

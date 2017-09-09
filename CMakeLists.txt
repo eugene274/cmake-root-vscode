@@ -24,3 +24,4 @@ link_directories (${PROJECT_ROOT_DIR}/lib)
 
 add_subdirectory (DataTree)
 add_subdirectory (NA61ToDataTree)
+add_subdirectory (FlowVectorNA61)

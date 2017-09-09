@@ -8,7 +8,7 @@ set (${PROJECT_NAME}_INCLUDE_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/include)
 string (TOLOWER ${PROJECT_NAME} STR_BIN_OUTPUT_FILENAME)
 
 
-file(GLOB SRC_FILES ${FlowVectorNA61_SOURCE_DIR}/*.cxx)
+file(GLOB SRC_FILES ${FlowVectorNA61_SOURCE_DIR}/FlowVectorNA61*)
 
 include_directories(
     ${FlowVectorNA61_INCLUDE_DIR}

@@ -5,8 +5,9 @@ NODES=1
 CORES=8
 WALLTIME="00:10:00"
 
-CMD=na61_to_datatree
-QSUB="qsub -q $QUEUE -l nodes=$NODES;ppn=$CORES;walltime=$WALLTIME "
+EXECUTOR=binExecutor.sh
+CMD="$ROOT_WORK_DIR/bin/na61_to_datatree"
+QSUB="qsub -q $QUEUE"
 
 if [ ! -d $1 ]
 then
@@ -27,10 +28,22 @@ output_dir=`realpath $2`
 for file in `ls -1 $input_dir`; do
     output=${file/TreeNA61/DataTree}
     log=${output/root/log}
-    toexec="$CMD $input_dir/$file $output_dir/$output &>
+#    toexec="$QSUB -v \
+#    CMD=$CMD,INPUT=$input_dir/$file,OUTPUT=$output_dir/$output \
+# $ROOT_WORK_DIR/bin/$EXECUTOR"
+    toexec="$CMD $input_dir/$file $output_dir/$output &> \
     $output_dir/$log"
-    echo $QSUB $toexec
+    echo $toexec
+    eval $toexec
+    
+#    REMAIN=`qstat -Q | awk '/^short/ {print $2-$3}'`
 
+#    echo REMAIN=$REMAIN
+#    while [[ $REMAIN -le 0 ]] 
+#    do
+
+#        sleep 10
+#    done
 done
 
 

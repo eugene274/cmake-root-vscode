@@ -6,6 +6,9 @@
 
 #include <iostream>
 
+#include <FlowVectorNA61SelectorCut.h>
+
+
 using namespace std;
 
 void FlowVectorNA61Selector::Loop()
@@ -42,8 +45,8 @@ void FlowVectorNA61Selector::Loop()
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
-      // if (Cut(ientry) < 0) continue;
+
+      
      
-      cout << EventId << endl;
    }
 }

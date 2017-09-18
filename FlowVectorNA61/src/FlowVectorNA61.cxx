@@ -4,13 +4,17 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TMath.h>
+
 #include <TH1.h>
+#include <TH2.h>
+#include <TH3.h>
 #include <TProfile.h>
 
 #include <Math/Point3D.h>
 #include <Math/Vector3D.h>
 
 #include <DataTreeEvent.h>
+#include <TH1Helper.h>
 
 using namespace std;
 using namespace ROOT::Math;
@@ -20,6 +24,29 @@ const Int_t     ZPOSITION_INDEX = 0;
 const Double_t  IMPACT_ZPOSITION = -581;
 
 
+TH2D* azimuthal_eta = new TH2D(
+	"azimuthal_eta", "\\phi", 
+	100, -TMath::Pi(), TMath::Pi(),
+	100, 1.0, 5.0
+);
+
+TH2D* azimuthal_pt = new TH2D(
+	"azimuthal_pt", "\\phi", 
+	100, -TMath::Pi(), TMath::Pi(),
+	100, 0.0, 1.0
+);
+
+TH3D* phi_eta_pt = new TH3D(
+	"phi_eta_pt", "\\phi", 
+	100, -TMath::Pi(), TMath::Pi(),
+	50, 1.0, 5.0,
+	50, 0.0, 1.0
+);
+
+TProfile* weight_phi = new TProfile(
+	"weight_phi", "w_i(\\phi)",
+	100, -TMath::Pi(), TMath::Pi()
+);
 
 TH1D* cosineTotalCorrelation = new TH1D(
 	"cosineTotalCorrelation", 
@@ -27,14 +54,21 @@ TH1D* cosineTotalCorrelation = new TH1D(
 	100,-1,1
 );
 
-TH1D* flowVectorEventPlaneCorrelation = new TH1D(
-	"flowVectorEventPlaneCorrelation",
+
+TH1D* event_plane_corr = new TH1D(
+	"event_plane_corr",
 	"\\Phi",
 	100, -TMath::Pi(), TMath::Pi()
 );
 
-TH1D* flowVectorEventPlaneSampled = new TH1D(
-	"flowVactorEventPlaneSampledCorr",
+TH1D* event_plane_uncorr = new TH1D(
+	"event_plane_uncorr",
+	"\\Phi",
+	100, -TMath::Pi(), TMath::Pi()
+);
+
+TH1D* event_plane_sampled = new TH1D(
+	"event_plane_sampled",
 	"<cos(\\Phi_a - \\Phi_b)>",
 	100, -1, 1
 );
@@ -42,25 +76,59 @@ TH1D* flowVectorEventPlaneSampled = new TH1D(
 TProfile* flowVectorV1_eta = new TProfile("v1_eta" , "v_1", 100, 1.0, 5.0);
 TProfile* flowVectorV1_pT  = new TProfile("v1_pT"  , "v_1", 100, 0.1, 1.0);
 
+TFile fd("result.root");
+
+Double_t getWeight(XYZVectorD* pp) {
+
+	if (fd.IsOpen()) {
+		TH1D* az = (TH1D*) fd.Get("phi_eta_pt");
+		if (az != nullptr) {
+			Int_t xbin_n = az->GetXaxis()->FindBin(pp->Phi());
+			Int_t ybin_n = az->GetYaxis()->FindBin(pp->Eta());
+			Int_t zbin_n = az->GetZaxis()->FindBin(pp->Rho());
+			Int_t bin_n = az->GetBin(xbin_n, ybin_n, zbin_n);
+			if (az->GetBinContent(bin_n) > 0) {
+				return 1.0/az->GetBinContent(bin_n);
+			}
+		}
+	}
+
+	return 1.0;
+}
+
+
 Bool_t Cut(DataTreeEvent* ev)
 {
 	return true;
 }
 
-inline Bool_t DataTreeTrackCut(DataTreeTrack* track) {
-	/* pi- */
-	if (track->GetCharge(ZPOSITION_INDEX) == -1 && track->GetPt(ZPOSITION_INDEX) < 1.0)
-	
+inline Bool_t DataTreeTrackCut(DataTreeTrack* track) 
+{
+	if (track->GetPt(ZPOSITION_INDEX) < 0.1)
 	{
-		return true;
+		return false;
+	}
+
+	if (track->GetEta(ZPOSITION_INDEX) < 2.5) {
+		return false;
+	}
+
+	if (-2.1 < track->GetPhi(ZPOSITION_INDEX) && track->GetPhi(ZPOSITION_INDEX) < -1.1)
+	{
+		return false;
 	}
 	
-	return false;
+	if (1.1 < track->GetPhi(ZPOSITION_INDEX) && track->GetPhi(ZPOSITION_INDEX) < 2.15)
+	{
+		return false;
+	}
+
+	
+	return true;
 }
 
 void Exec(DataTreeEvent* ev)
 {
-	
 	
 	Int_t nTracks = ev->GetNTracks();
 	
@@ -75,6 +143,7 @@ void Exec(DataTreeEvent* ev)
 	Double_t phi_2;
 	
 	RhoEtaPhiPointD fv_eventPlane;
+	RhoEtaPhiPointD fv_eventPlane_uncorr;
 	
 	RhoEtaPhiPointD fv_sample_1;
 	RhoEtaPhiPointD fv_sample_2;
@@ -87,25 +156,29 @@ void Exec(DataTreeEvent* ev)
 	
 	for (int itx = 0; itx < nTracks; itx++) {
 		track = ev->GetTrack(itx);
-		
-		if (!DataTreeTrackCut(track))
-		{
-			continue;
-		}
-		
-		phi_1 = track->GetPhi(ZPOSITION_INDEX);
-		
-		
+
 		XYZVectorD pp(
 			track->GetPx(ZPOSITION_INDEX), 
 			track->GetPy(ZPOSITION_INDEX),
 			track->GetPz(ZPOSITION_INDEX)
 		);
+
+		phi_1 = pp.Phi();
+		azimuthal_eta->Fill(phi_1, pp.Eta());
+		azimuthal_pt->Fill(phi_1, track->GetPt(ZPOSITION_INDEX));
+		phi_eta_pt->Fill(phi_1, pp.Eta(), track->GetPt(ZPOSITION_INDEX));
+
+		if (!DataTreeTrackCut(track))
+		{
+			continue;
+		}	
 		
-		/* TODO normal weight function*/
+		/* TODO normal weight function */
 		XYZVectorD fv_u = pp.Unit();
-		// fv_u = (track->GetPz(ZPOSITION_INDEX) > 0? 1 : -1)*fv_u;
-		fv_eventPlane += fv_u;
+		weight_phi->Fill(phi_1, getWeight(&pp));
+
+		fv_eventPlane_uncorr += fv_u;
+		fv_eventPlane += fv_u*getWeight(&pp);
 		
 		/* FLOW-VECTOR SAMPLING */
 		if (itx%2 == 0) {
@@ -125,12 +198,13 @@ void Exec(DataTreeEvent* ev)
 			phi_2 = track->GetPhi(ZPOSITION_INDEX);
 			
 			/* filling histograms */
-			cosineTotalCorrelation->Fill(TMath::Cos(phi_1 - phi_2));
+			cosineTotalCorrelation->Fill(Cos(phi_1 - phi_2));
 			
-			phi1_phi2_total_correlation.push_back(TMath::Cos(phi_1 - phi_2));
+			phi1_phi2_total_correlation.push_back(Cos(phi_1 - phi_2));
 			
 			tracks_flag = true;
 		}
+
 	}
 	
 	Double_t phi1_phi2_norm = Sqrt(Abs(Mean( phi1_phi2_total_correlation.begin(), phi1_phi2_total_correlation.end() )));
@@ -141,8 +215,9 @@ void Exec(DataTreeEvent* ev)
 		return;
 	}
 	
-	flowVectorEventPlaneCorrelation->Fill(fv_eventPlane.Phi());
-	flowVectorEventPlaneSampled->Fill(TMath::Cos(fv_sample_1.Phi() - fv_sample_2.Phi()));
+	event_plane_corr->Fill(fv_eventPlane.Phi());
+	event_plane_uncorr->Fill(fv_eventPlane_uncorr.Phi());
+	event_plane_sampled->Fill(Cos(fv_sample_1.Phi() - fv_sample_2.Phi()));
 	
 	for (int itx = 0; itx < nTracks; itx++) {
 		track = ev->GetTrack(itx);
@@ -174,6 +249,7 @@ void Exec(DataTreeEvent* ev)
 }
 
 int main(int argc, char** argv) {
+	
 	if (argc < 2) {
 		cerr << "No input file specified";
 		return 1;
@@ -206,10 +282,26 @@ int main(int argc, char** argv) {
 		
 		cout << "Processed " << total_processed << endl;
 		
-		cosineTotalCorrelation->SaveAs("fvNA61_cosineTotalCorrelation.C");
-		flowVectorEventPlaneCorrelation->SaveAs("fvNA61_eventPlaneAzimuthCorrelation.C");
-		flowVectorEventPlaneSampled->SaveAs("fvNA61_eventPlaneSampledAzimuthCorr.C");
-		
-		flowVectorV1_eta->SaveAs("fvNA61_v1_eta.C");
-		flowVectorV1_pT->SaveAs("fvNA61_v1_pT.C");
+		{
+			TFile _az_tot("result.root", "RECREATE");
+			cosineTotalCorrelation->Write();
+
+			event_plane_corr->Scale(1.0);
+			event_plane_corr->Write();
+
+			event_plane_uncorr->Scale(1.0);
+			event_plane_uncorr->Write();
+			event_plane_sampled->Write();
+			
+			flowVectorV1_eta->Write();
+			flowVectorV1_pT->Write();
+	
+			azimuthal_eta->Write();
+			azimuthal_pt->Write();
+			phi_eta_pt->Write();
+
+			weight_phi->Write();
+
+			event_plane_corr->Write();
+		}
 	}

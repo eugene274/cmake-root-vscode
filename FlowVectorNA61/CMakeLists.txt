@@ -10,27 +10,21 @@ string (TOLOWER ${PROJECT_NAME} STR_BIN_OUTPUT_FILENAME)
 file(GLOB SRC_FILES ${FlowVectorNA61_SOURCE_DIR}/FlowVectorNA61Selector*)
 
 include_directories(
-    ${FlowVectorNA61_INCLUDE_DIR}
+    ${${PROJECT_NAME}_INCLUDE_DIR}
     ${DataTree_INCLUDE_DIR}
     )
 
 add_definitions(${ROOT_CXX_FLAGS})
 
-add_executable(fvna61_event_selector 
-    ${SRC_FILES} 
-    ${FlowVectorNA61_SOURCE_DIR}/main.cxx
-)
-target_link_libraries (fvna61_event_selector DataTree ${ROOT_LIBRARIES}) 
 
 add_executable(fvna61_flow_analysis 
-    ${FlowVectorNA61_SOURCE_DIR}/FlowVectorNA61.cxx 
-    ${FlowVectorNA61_SOURCE_DIR}/TH1Helper.cxx
- )
+    ${${PROJECT_NAME}_SOURCE_DIR}/FlowVectorNA61.cxx 
+)
 target_link_libraries (fvna61_flow_analysis DataTree ${ROOT_LIBRARIES}) 
 
 
 install (
-    TARGETS fvna61_event_selector fvna61_flow_analysis
+    TARGETS fvna61_flow_analysis
     RUNTIME     DESTINATION ${PROJECT_ROOT_BIN_DIR}
     INCLUDES    DESTINATION ${PROJECT_ROOT_INCLUDE_DIR}
 )

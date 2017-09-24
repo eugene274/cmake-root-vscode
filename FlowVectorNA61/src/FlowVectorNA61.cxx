@@ -14,7 +14,6 @@
 #include <Math/Vector3D.h>
 
 #include <DataTreeEvent.h>
-#include <TH1Helper.h>
 
 using namespace std;
 using namespace ROOT::Math;
@@ -104,12 +103,14 @@ Bool_t Cut(DataTreeEvent* ev)
 
 inline Bool_t DataTreeTrackCut(DataTreeTrack* track) 
 {
-	if (track->GetPt(ZPOSITION_INDEX) < 0.1)
-	{
-		return false;
-	}
+	// if (track->GetPt(ZPOSITION_INDEX) < 0.1)
+	// {
+	// 	return false;
+	// }
 
-	if (track->GetEta(ZPOSITION_INDEX) < 2.5) {
+	Double_t eta = Abs(track->GetEta(ZPOSITION_INDEX));
+
+	if (eta > 2.5) {
 		return false;
 	}
 

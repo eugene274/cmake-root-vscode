@@ -14,6 +14,7 @@
 #include <Math/Vector3D.h>
 
 #include <DataTreeEvent.h>
+#include <FVNA61EventSelector.h>
 
 using namespace std;
 using namespace ROOT::Math;
@@ -261,6 +262,11 @@ int main(int argc, char** argv) {
 	
 	TTree* tree = (TTree*) ff.Get("fDataTree");
 	
+	FVNA61EventSelector event_selector(tree);
+	tree->Process(&event_selector);
+
+	return 0;
+
 	DataTreeEvent* ev = new DataTreeEvent();
 	
 	auto* dtEventBranch = tree->GetBranch("DTEvent");
@@ -273,6 +279,7 @@ int main(int argc, char** argv) {
 	
 	cout << "Entries: " << nentries << endl;
 	for (Long64_t jentry = 1; jentry < nentries; jentry++) {
+		event_selector.Process(jentry);
 		tree->GetEntry(jentry);
 		// if (EventCut(ev, &event_cut_p)) {
 			total_processed++;
@@ -280,7 +287,12 @@ int main(int argc, char** argv) {
 			// }
 			
 		}
+
+		event_selector.Terminate();
+
 		
+
+
 		cout << "Processed " << total_processed << endl;
 		
 		{

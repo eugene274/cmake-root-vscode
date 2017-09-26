@@ -19,12 +19,13 @@ add_definitions(${ROOT_CXX_FLAGS})
 
 add_executable(fvna61_flow_analysis 
     ${${PROJECT_NAME}_SOURCE_DIR}/FlowVectorNA61.cxx 
+    ${${PROJECT_NAME}_SOURCE_DIR}/FVNA61EventSelector.cxx
 )
-target_link_libraries (fvna61_flow_analysis DataTree ${ROOT_LIBRARIES}) 
+target_link_libraries (fvna61_flow_analysis DataTree ${ROOT_LIBRARIES} TreePlayer) 
 
 
 install (
-    TARGETS fvna61_flow_analysis
+    TARGETS     fvna61_flow_analysis
     RUNTIME     DESTINATION ${PROJECT_ROOT_BIN_DIR}
     INCLUDES    DESTINATION ${PROJECT_ROOT_INCLUDE_DIR}
 )

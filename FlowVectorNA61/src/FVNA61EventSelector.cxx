@@ -35,6 +35,13 @@
 
 #include <iostream>
 
+
+#define GET(TT,NN)  ((TT) gDirectory->Get(NN))
+
+#define FILL(TT,NN,SS) GET(TT,NN)->Fill(SS)
+
+#define WRITE(NN)     GET(TObject*, NN)->Write()     
+
 #define ZP_INDEX 0
 
 using namespace std;
@@ -50,6 +57,7 @@ void FVNA61EventSelector::Begin(TTree * /*tree*/)
    TString option = GetOption();
 
    new TH1D("Total_Momentum_pT", "Total Momentum p_T", 100, 0, 4);
+   new TH1D("Q_Vector_Phi", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
 }
 
 void FVNA61EventSelector::SlaveBegin(TTree * /*tree*/)
@@ -94,7 +102,7 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
 
 
    XYZPointD Total_Momentum;
-
+   XYZPointD Q_Vector;
 
    for (int i = 0 ; i < Multiplicity ; i++ ) {
        DataTreeTrack* track_1 = (DataTreeTrack*) (*arrTracks).At(i);
@@ -102,11 +110,13 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
        XYZVectorD Momentum_1 = {track_1->GetPx(ZP_INDEX), track_1->GetPy(ZP_INDEX), track_1->GetPz(ZP_INDEX)};
 
        Total_Momentum += Momentum_1;
+       Q_Vector += Momentum_1.Unit();
 
-       TH1D* Total_Momentum_pT = (TH1D*) gDirectory->Get("Total_Momentum_pT");
-       Total_Momentum_pT->Fill(Total_Momentum.Rho());
-
-   }
+       
+    }
+    
+   FILL(TH1D*,"Total_Momentum_pT", Total_Momentum.Rho());
+   FILL(TH1D*,"Q_Vector_Phi", Q_Vector.Phi());
 
    return kTRUE;
 }
@@ -125,10 +135,12 @@ void FVNA61EventSelector::Terminate()
    // a query. It always runs on the client, it can be used to present
    // the results graphically or save the results to file.
    
-   TH1D* Total_Momentum_pT = (TH1D*) gDirectory->Get("Total_Momentum_pT");
+   TObject* Q_Vector_Phi = GET(TObject*, "Q_Vector_Phi");
+   TH1D* Total_Momentum_pT = GET(TH1D*, "Total_Momentum_pT");
    
    TFile* ff = new TFile("rr.root", "RECREATE");
    Total_Momentum_pT->Write();
+   Q_Vector_Phi->Write();
 
 
    if (ff->IsOpen()) {

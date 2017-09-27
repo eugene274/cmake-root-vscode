@@ -1,3 +1,4 @@
 [submodule "QnCorrections"]
 	path = QnCorrections
 	url = git@github.com:eugene274/FlowVectorCorrections.git
+	branch = develop

@@ -20,6 +20,7 @@ add_definitions(${ROOT_CXX_FLAGS})
 add_executable(fvna61_flow_analysis 
     ${${PROJECT_NAME}_SOURCE_DIR}/FlowVectorNA61.cxx 
     ${${PROJECT_NAME}_SOURCE_DIR}/FVNA61EventSelector.cxx
+    ${${PROJECT_NAME}_SOURCE_DIR}/QnCorrectEventSelector.cxx
 )
 target_link_libraries (fvna61_flow_analysis DataTree ${ROOT_LIBRARIES} TreePlayer) 
 

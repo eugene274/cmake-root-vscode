@@ -140,7 +140,7 @@ public :
    TTreeReaderArray<Int_t> arrTriggers_id = {fReader, "arrTriggers.id"};
    TTreeReaderArray<Double_t> arrTriggers_Signal = {fReader, "arrTriggers.Signal"};
    TTreeReaderArray<Bool_t> arrTriggers_isSignal = {fReader, "arrTriggers.isSignal"};
-   TTreeReaderArray<TString> arrTriggers_Label = {fReader, "arrTriggers.Label"};
+//    TTreeReaderArray<TString> arrTriggers_Label = {fReader, "arrTriggers.Label"};
    TTreeReaderValue<Int_t> nBPDs = {fReader, "nBPDs"};
    TTreeReaderArray<unsigned int> arrBPDs_fUniqueID = {fReader, "arrBPDs.fUniqueID"};
    TTreeReaderArray<unsigned int> arrBPDs_fBits = {fReader, "arrBPDs.fBits"};

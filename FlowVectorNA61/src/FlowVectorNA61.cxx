@@ -14,6 +14,7 @@
 #include <Math/Vector3D.h>
 
 #include <DataTreeEvent.h>
+#include <QnCorrectEventSelector.h>
 #include <FVNA61EventSelector.h>
 
 using namespace std;
@@ -262,11 +263,13 @@ int main(int argc, char** argv) {
 	
 	TTree* tree = (TTree*) ff.Get("fDataTree");
 	
-	FVNA61EventSelector event_selector(tree);
-	tree->Process(&event_selector);
+
+	tree->Process(new QnCorrectEventSelector());
+	tree->Process(new FVNA61EventSelector());
 
 	return 0;
 
+	/*
 	DataTreeEvent* ev = new DataTreeEvent();
 	
 	auto* dtEventBranch = tree->GetBranch("DTEvent");
@@ -317,4 +320,5 @@ int main(int argc, char** argv) {
 
 			event_plane_corr->Write();
 		}
+		*/
 	}

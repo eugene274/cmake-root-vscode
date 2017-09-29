@@ -35,8 +35,11 @@
 #include <Math/Point3D.h>
 #include <Math/Vector3D.h>
 #include <TMatrixD.h>
+#include <TVectorD.h>
 
 #include <iostream>
+
+#define COMMA ,
 
 
 
@@ -56,7 +59,16 @@ void FVNA61EventSelector::Begin(TTree * /*tree*/)
     
     new TH1D("Total_Momentum_pT", "Total Momentum p_T", 100, 0, 4);
     new TH1D("Q_Vector_Phi", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
-    new TH1D("Q_Vector_Phi_Corrected", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
+    new TH1D("Q_Vector_Phi_Corrected_0", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
+    new TH1D("Q_Vector_Phi_Corrected_1", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
+    
+    
+    new TH1D("u_Uncorrected", "\\phi", 100, -TMath::Pi(), TMath::Pi());
+    new TH1D("u_Corrected_0", "\\phi", 100, -TMath::Pi(), TMath::Pi());
+    new TH1D("u_Corrected_1", "\\phi", 100, -TMath::Pi(), TMath::Pi());
+    new TH2D("Q_Vector_Corrected_1_xy", "<xy>", 100, -5, 5, 100, -5, 5);
+
+    
     
 }
 
@@ -68,6 +80,18 @@ void FVNA61EventSelector::SlaveBegin(TTree * /*tree*/)
     
     TString option = GetOption();
     
+}
+
+Bool_t QVCut(DataTreeTrack* track) {
+    if (track->GetPt(ZP_INDEX) < 1.0) {
+        return false;
+    }
+    
+    if (track->GetEta(ZP_INDEX) > 4.0) {
+        return false;
+    } 
+    
+    return true;
 }
 
 Bool_t FVNA61EventSelector::Process(Long64_t entry)
@@ -108,38 +132,69 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
         
         TH1D* c_1 = GET(TH1D*, "c_1");
         TH1D* s_1 = GET(TH1D*, "s_1");
-
+        
         TH1D* c_2 = GET(TH1D*, "c_2");
         TH1D* s_2 = GET(TH1D*, "s_2");
         XYZVectorD u_Correction_0 = {c_1->GetMean(), s_1->GetMean(), 0.0};
-
+        
         TMatrixD u_Correction_1(3,3);
         Double_t u_Correction_1_Arr[9] = {
             1 - c_2->GetMean()  ,   - s_2->GetMean(), 0.0,
-              - s_2->GetMean()  , 1 + c_2->GetMean(), 0.0,
-                             0  ,                  0, 1.0 
+            - s_2->GetMean()  , 1 + c_2->GetMean(), 0.0,
+            0  ,                  0, 1.0 
         };
         u_Correction_1.SetMatrixArray(u_Correction_1_Arr);
         u_Correction_1 *= 1.0/(1 - Power(c_2->GetMean(), 2.0) - Power(s_2->GetMean(), 2.0));
-
+        
+        bool QV_flag = false;
+        
         for (int i = 0 ; i < Multiplicity ; i++ ) {
             DataTreeTrack* track_1 = (DataTreeTrack*) (*arrTracks).At(i);
             
             XYZVectorD Momentum_1 = {track_1->GetPx(ZP_INDEX), track_1->GetPy(ZP_INDEX), track_1->GetPz(ZP_INDEX)};
             
             Total_Momentum += Momentum_1;
-
-            XYZVectorD u = Momentum_1.Unit();
-
-            Q_Vector += u;
-            Q_Vector_Corrected_0 += (u - u_Correction_0);
-            Q_Vector_Corrected_1 += (u - u_Correction_0)*u_Correction_1;
+            
+            XYZVectorD u = {Momentum_1.X(), Momentum_1.Y(), 0.0};
+            u = u.Unit();
+            XYZVectorD u_Corrected_0 = u - u_Correction_0;
+            XYZVectorD u_Corrected_1;
+            {
+                Double_t vec_Arr[3] = {
+                    u_Corrected_0.X(),
+                    u_Corrected_0.Y(),
+                    u_Corrected_0.Z()
+                };
+                TVectorD vec(3, vec_Arr);
+                
+                vec = u_Correction_1*vec;
+                
+                u_Corrected_1.SetCoordinates(vec[0], vec[1], vec[2]);
+            }
+            
+            FILL(TH1D*, "u_Uncorrected", u.Phi());
+            FILL(TH1D*, "u_Corrected_0", u_Corrected_0.Phi());
+            FILL(TH1D*, "u_Corrected_1", u_Corrected_1.Phi());
+            
+            if (QVCut(track_1)) {
+                QV_flag = true;
+                
+                Q_Vector += u;
+                Q_Vector_Corrected_0 += u_Corrected_0;
+                Q_Vector_Corrected_1 += u_Corrected_1;
+                
+            }
         }
         
         FILL(TH1D*,"Total_Momentum_pT", Total_Momentum.Rho());
-        FILL(TH1D*,"Q_Vector_Phi", Q_Vector.Phi());
-        FILL(TH1D*,"Q_Vector_Phi_Corrected", Q_Vector_Corrected_0.Phi());
-
+        
+        if (QV_flag) {
+            FILL(TH1D*,"Q_Vector_Phi", Q_Vector.Phi());
+            FILL(TH1D*,"Q_Vector_Phi_Corrected_1", Q_Vector_Corrected_1.Phi());
+            FILL(TH1D*,"Q_Vector_Phi_Corrected_0", Q_Vector_Corrected_0.Phi());
+            FILL(TH2D*,"Q_Vector_Corrected_1_xy", Q_Vector_Corrected_1.X() COMMA Q_Vector_Corrected_1.Y());
+        }
+        
         return kTRUE;
     }
     
@@ -158,14 +213,25 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
         // the results graphically or save the results to file.
         
         TObject* Q_Vector_Phi = GET(TObject*, "Q_Vector_Phi");
-        TObject* Q_Vector_Phi_Corrected = GET(TObject*, "Q_Vector_Phi_Corrected");
-
+        TObject* Q_Vector_Phi_Corrected_0 = GET(TObject*, "Q_Vector_Phi_Corrected_0");
+        TObject* Q_Vector_Phi_Corrected_1 = GET(TObject*, "Q_Vector_Phi_Corrected_1");
+        
+        TObject* u_Uncorrected = GET(TObject*, "u_Uncorrected");
+        TObject* u_Corrected_0 = GET(TObject*, "u_Corrected_0");
+        TObject* u_Corrected_1 = GET(TObject*, "u_Corrected_1");
+        TObject* Q_Vector_Corrected_1_xy = GET(TObject*, "Q_Vector_Corrected_1_xy");
         TH1D* Total_Momentum_pT = GET(TH1D*, "Total_Momentum_pT");
         
         TFile* ff = new TFile("rr.root", "RECREATE");
         Total_Momentum_pT->Write();
         Q_Vector_Phi->Write();
-        Q_Vector_Phi_Corrected->Write();
+        Q_Vector_Phi_Corrected_0->Write();
+        Q_Vector_Phi_Corrected_1->Write();
+
+        u_Uncorrected->Write();
+        u_Corrected_0->Write();
+        u_Corrected_1->Write();
+        Q_Vector_Corrected_1_xy->Write();
         
         if (ff->IsOpen()) {
             ff->Close();

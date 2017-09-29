@@ -28,13 +28,13 @@ void QnCorrectEventSelector::Begin(TTree* tree) {
     100, -1, 1
     );
 
-    new TH1D("c_1", "c_1", 100, -1, 1);
-    new TH1D("c_2", "c_2", 100, -1, 1);
-    new TH1D("c_3", "c_3", 100, -1, 1);
+    new TH1D("c_1", "cos(1*\\phi)", 100, -1, 1);
+    new TH1D("c_2", "cos(2*\\phi)", 100, -1, 1);
+    new TH1D("c_3", "cos(3*\\phi)", 100, -1, 1);
 
-    new TH1D("s_1", "s_1", 100, -1, 1);
-    new TH1D("s_2", "s_2", 100, -1, 1);
-    new TH1D("s_3", "s_3", 100, -1, 1);
+    new TH1D("s_1", "sin(1*\\phi)", 100, -1, 1);
+    new TH1D("s_2", "sin(2*\\phi)", 100, -1, 1);
+    new TH1D("s_3", "sin(3*\\phi)", 100, -1, 1);
 }
 
 Bool_t QnCorrectEventSelector::Process(Long64_t entry) {
@@ -50,6 +50,11 @@ Bool_t QnCorrectEventSelector::Process(Long64_t entry) {
         
         XYZVectorD pp = {track_1->GetPx(0), track_1->GetPy(0), track_1->GetPz(0)};
         Q_Vector += pp.Unit();
+
+        /* cos(\\phi) */
+        Double_t xx = pp.Unit().X();
+        /* sin(\\phi) */
+        Double_t yy = pp.Unit().Y();
         
         
         FILL(TH2D*, "xy_0", pp.Unit().X() COMMA pp.Unit().Y());
@@ -98,5 +103,5 @@ void QnCorrectEventSelector::Terminate() {
     Output_File->Close();
 
     cout << "<cos^2> + <sin^2> = " << Power(c_1->GetMean(), 2.0) + Power(c_2->GetMean(), 2.0) << endl;
-    cout << "u_0_x = " << c_1->GetMean() << "; " << "u_0_y = " << c_2->GetMean() << endl; 
+    cout << "u_0_x = " << c_1->GetMean() << "; " << "u_0_y = " << s_1->GetMean() << endl; 
 }

@@ -15,6 +15,8 @@ file (GLOB SRC_FILES ${DataTree_SOURCE_DIR}/*.cxx)
 
 add_definitions(${ROOT_CXX_FLAGS})
 
+include (${ROOT_USE_FILE})
+
 ROOT_GENERATE_DICTIONARY(
     G__DataTreeEvent 
     ${DataTree_SOURCE_DIR}/Macros/DataTreeEventQA.C 

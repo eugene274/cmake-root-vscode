@@ -26,7 +26,7 @@
 
 
 #include "FVNA61EventSelector.h"
-#include <Macro.h>
+#include "Macro.h"
 
 #include <TH2.h>
 #include <TH1.h>
@@ -39,15 +39,25 @@
 
 #include <iostream>
 
-#define COMMA ,
-
-
 
 #define ZP_INDEX 0
 
 using namespace std;
 using namespace TMath;
 using namespace ROOT::Math;
+
+typedef struct {
+
+    Bool_t flag;
+
+    Double_t Q_Uncorrected_X;
+    Double_t Q_Uncorrected_Y;
+    Double_t Q_Corrected_X;
+    Double_t Q_Corrected_Y;
+
+} QVector;
+
+QVector q_Vec;
 
 void FVNA61EventSelector::Begin(TTree * /*tree*/)
 {
@@ -59,15 +69,15 @@ void FVNA61EventSelector::Begin(TTree * /*tree*/)
     
     new TH1D("Total_Momentum_pT", "Total Momentum p_T", 100, 0, 4);
     new TH1D("Q_Vector_Phi", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
-    new TH1D("Q_Vector_Phi_Corrected_0", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
     new TH1D("Q_Vector_Phi_Corrected_1", "\\Phi", 100, -TMath::Pi(), TMath::Pi());
     
     
     new TH1D("u_Uncorrected", "\\phi", 100, -TMath::Pi(), TMath::Pi());
-    new TH1D("u_Corrected_0", "\\phi", 100, -TMath::Pi(), TMath::Pi());
     new TH1D("u_Corrected_1", "\\phi", 100, -TMath::Pi(), TMath::Pi());
     new TH2D("Q_Vector_Corrected_1_xy", "<xy>", 100, -5, 5, 100, -5, 5);
-
+    
+    TTree* q_Vec_tree = new TTree("q_Vec_tree", "Q Vectors (Corrected/Uncorrected)");
+    q_Vec_tree->Branch("qVector", &q_Vec, "flag/O:Q_Uncorrected_X/D:Q_Uncorrected_Y:Q_Corrected_X:Q_Corrected_Y");
     
     
 }
@@ -92,6 +102,20 @@ Bool_t QVCut(DataTreeTrack* track) {
     } 
     
     return true;
+}
+
+inline void DoCorrection(XYZVectorD* src, XYZVectorD* dst) {
+
+    Double_t data[3] = {src->X(), src->Y(), src->Z()};
+    TVectorD vec(3, data);
+
+    TVectorD* u_Correction_0 = GET(TVectorD*, "u_Correction_0");
+    TMatrixD* u_Correction_1 = GET(TMatrixD*, "u_Correction_1");
+
+    vec -= *u_Correction_0;
+    vec *= *u_Correction_1;
+
+    dst->SetCoordinates(vec(0), vec(1), vec(2));
 }
 
 Bool_t FVNA61EventSelector::Process(Long64_t entry)
@@ -130,22 +154,10 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
         XYZPointD Q_Vector_Corrected_0;
         XYZPointD Q_Vector_Corrected_1;
         
-        TH1D* c_1 = GET(TH1D*, "c_1");
-        TH1D* s_1 = GET(TH1D*, "s_1");
-        
-        TH1D* c_2 = GET(TH1D*, "c_2");
-        TH1D* s_2 = GET(TH1D*, "s_2");
-        XYZVectorD u_Correction_0 = {c_1->GetMean(), s_1->GetMean(), 0.0};
-        
-        TMatrixD u_Correction_1(3,3);
-        Double_t u_Correction_1_Arr[9] = {
-            1 - c_2->GetMean()  ,   - s_2->GetMean(), 0.0,
-            - s_2->GetMean()  , 1 + c_2->GetMean(), 0.0,
-            0  ,                  0, 1.0 
-        };
-        u_Correction_1.SetMatrixArray(u_Correction_1_Arr);
-        u_Correction_1 *= 1.0/(1 - Power(c_2->GetMean(), 2.0) - Power(s_2->GetMean(), 2.0));
-        
+
+        TVectorD* u_Correction_0 = GET(TVectorD*, "u_Correction_0");
+        TMatrixD* u_Correction_1 = GET(TMatrixD*, "u_Correction_1");
+
         bool QV_flag = false;
         
         for (int i = 0 ; i < Multiplicity ; i++ ) {
@@ -157,43 +169,41 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
             
             XYZVectorD u = {Momentum_1.X(), Momentum_1.Y(), 0.0};
             u = u.Unit();
-            XYZVectorD u_Corrected_0 = u - u_Correction_0;
-            XYZVectorD u_Corrected_1;
-            {
-                Double_t vec_Arr[3] = {
-                    u_Corrected_0.X(),
-                    u_Corrected_0.Y(),
-                    u_Corrected_0.Z()
-                };
-                TVectorD vec(3, vec_Arr);
-                
-                vec = u_Correction_1*vec;
-                
-                u_Corrected_1.SetCoordinates(vec[0], vec[1], vec[2]);
-            }
             
             FILL(TH1D*, "u_Uncorrected", u.Phi());
-            FILL(TH1D*, "u_Corrected_0", u_Corrected_0.Phi());
-            FILL(TH1D*, "u_Corrected_1", u_Corrected_1.Phi());
+            
+            XYZVector u_Corrected_1;
+            DoCorrection(&u, &u_Corrected_1);
+            
+            FILL(TH1D*, "u_Corrected_1", u.Phi());
             
             if (QVCut(track_1)) {
                 QV_flag = true;
                 
                 Q_Vector += u;
-                Q_Vector_Corrected_0 += u_Corrected_0;
                 Q_Vector_Corrected_1 += u_Corrected_1;
-                
+            
             }
+
         }
         
         FILL(TH1D*,"Total_Momentum_pT", Total_Momentum.Rho());
-        
+
+        q_Vec.flag = false;
+
         if (QV_flag) {
+            q_Vec.flag = true;
+            q_Vec.Q_Uncorrected_X = Q_Vector.X();
+            q_Vec.Q_Uncorrected_Y = Q_Vector.Y();
+            q_Vec.Q_Corrected_X = Q_Vector_Corrected_1.X();
+            q_Vec.Q_Corrected_Y = Q_Vector_Corrected_1.Y();
+
             FILL(TH1D*,"Q_Vector_Phi", Q_Vector.Phi());
             FILL(TH1D*,"Q_Vector_Phi_Corrected_1", Q_Vector_Corrected_1.Phi());
-            FILL(TH1D*,"Q_Vector_Phi_Corrected_0", Q_Vector_Corrected_0.Phi());
             FILL(TH2D*,"Q_Vector_Corrected_1_xy", Q_Vector_Corrected_1.X() COMMA Q_Vector_Corrected_1.Y());
         }
+
+        GET(TTree*, "q_Vec_tree")->Fill();
         
         return kTRUE;
     }
@@ -211,30 +221,10 @@ Bool_t FVNA61EventSelector::Process(Long64_t entry)
         // The Terminate() function is the last function to be called during
         // a query. It always runs on the client, it can be used to present
         // the results graphically or save the results to file.
-        
-        TObject* Q_Vector_Phi = GET(TObject*, "Q_Vector_Phi");
-        TObject* Q_Vector_Phi_Corrected_0 = GET(TObject*, "Q_Vector_Phi_Corrected_0");
-        TObject* Q_Vector_Phi_Corrected_1 = GET(TObject*, "Q_Vector_Phi_Corrected_1");
-        
-        TObject* u_Uncorrected = GET(TObject*, "u_Uncorrected");
-        TObject* u_Corrected_0 = GET(TObject*, "u_Corrected_0");
-        TObject* u_Corrected_1 = GET(TObject*, "u_Corrected_1");
-        TObject* Q_Vector_Corrected_1_xy = GET(TObject*, "Q_Vector_Corrected_1_xy");
-        TH1D* Total_Momentum_pT = GET(TH1D*, "Total_Momentum_pT");
-        
-        TFile* ff = new TFile("rr.root", "RECREATE");
-        Total_Momentum_pT->Write();
-        Q_Vector_Phi->Write();
-        Q_Vector_Phi_Corrected_0->Write();
-        Q_Vector_Phi_Corrected_1->Write();
 
-        u_Uncorrected->Write();
-        u_Corrected_0->Write();
-        u_Corrected_1->Write();
-        Q_Vector_Corrected_1_xy->Write();
-        
-        if (ff->IsOpen()) {
-            ff->Close();
-        }
-        
+        gDirectory->ls();
+
+        TTree* q_Vec_tree = GET(TTree*, "q_Vec_tree");
+        TFile ff("QVectors.root", "RECREATE");
+        q_Vec_tree->Write();
     }

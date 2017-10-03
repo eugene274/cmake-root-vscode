@@ -265,9 +265,7 @@ int main(int argc, char** argv) {
 	
 
 	tree->Process(new QnCorrectEventSelector());
-	gDirectory->ls();
 	tree->Process(new FVNA61EventSelector());
-
 	return 0;
 
 	/*

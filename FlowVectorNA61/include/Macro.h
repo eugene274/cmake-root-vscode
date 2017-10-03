@@ -5,4 +5,6 @@
 
 #define FILL(TT,NN,SS) GET(TT,NN)->Fill(SS)
 
+#define COMMA ,
+
 #endif

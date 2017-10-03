@@ -24,6 +24,7 @@ add_executable(fvna61_flow_analysis
 )
 target_link_libraries (fvna61_flow_analysis DataTree ${ROOT_LIBRARIES} TreePlayer) 
 
+message("${ROOT_LIBRARIES}")
 
 install (
     TARGETS     fvna61_flow_analysis
